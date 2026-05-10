@@ -1,0 +1,25 @@
+[B]Mire Sirens v1.0.0[/B]
+[I]Initial Release - Clean Fork[/I]
+
+Mire Sirens is a community-maintained continuation of the Fen Light addon family, picking up after the original Fen Light (Tikipeter) was retired in late 2024 and Fen Light AM (AnonyMouse) was discontinued in 2026.
+
+[B]Changes from Fen Light AM v2.2.04:[/B]
+- Rebranded to Mire Sirens by isleysharleen
+- All previous shared API keys removed (Trakt Client/Secret, TMDb)
+- Updater repointed to https://github.com/isleysharleen/isleysharleen.github.io
+- Existing installs from Fen Light or Fen Light AM will be auto-detected and prompted to provide their own keys on first run
+- All addon functionality preserved: Trakt sync, debrid integration (Real Debrid, Premiumize, AllDebrid, TorBox, Easynews), CocoScrapers/Magneto support, AI similar (Gemini/Groq), MDbList ratings, custom skins
+
+[B]Important - Bring Your Own Keys:[/B]
+You must supply your own credentials before the addon will pull metadata, manage TMDb lists, or sync to Trakt.
+
+- TMDb API Key (v3 auth): register free at https://www.themoviedb.org/settings/api
+- TMDb Read Access Token (v4 auth): SAME page, copy the long string starting with "eyJ" - prompted on first use, or paste in Settings -> Accounts -> TMDb
+- Trakt application: register free at https://trakt.tv/oauth/applications
+   (use redirect URI: urn:ietf:wg:oauth:2.0:oob)
+
+Paste TMDb keys and Trakt credentials into Settings -> Tools -> Accounts.
+
+[B]All other services use your own accounts:[/B]
+- Real Debrid, Premiumize, AllDebrid, TorBox, Easynews -- linked through their normal device-auth flows.
+- Google Gemini / Groq -- optional, only needed if you want AI similar recommendations.
