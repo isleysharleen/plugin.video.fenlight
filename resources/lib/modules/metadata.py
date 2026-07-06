@@ -163,7 +163,7 @@ def tvshow_meta(id_type, media_id, api_key, mpaa_region, current_date, current_t
 		data_get = data.get
 		cast, short_cast, writer, director, studio, all_trailers, country, country_codes = [], [], [], [], [], [], [], []
 		mpaa, trailer = '', ''
-		external_ids = data_get('external_ids')
+		external_ids = data_get('external_ids') or {}
 		tmdb_id, imdb_id, tvdb_id = data_get('id', ''), external_ids.get('imdb_id', ''), external_ids.get('tvdb_id', 'None')
 		rating, votes = data_get('vote_average', ''), data_get('vote_count', '')
 		plot, tagline, premiered = data_get('overview', ''), data_get('tagline', ''), data_get('first_air_date', '')

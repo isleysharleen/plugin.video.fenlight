@@ -21,10 +21,25 @@ def no_secret_key():
 	kodi_utils.notification('Please set a valid Trakt Client Secret Key')
 	return None
 
-def get_trakt(params):
-	result = call_trakt(params['path'] % params.get('path_insert', ''), params=params.get('params', {}), data=params.get('data'), is_delete=params.get('is_delete', False),
-						with_auth=params.get('with_auth', False), method=params.get('method'), pagination=params.get('pagination', True), page_no=params.get('page_no'))
-	return result[0] if params.get('pagination', True) else result
+def get_trakt_all_pages(params, limit=250):
+	# Trakt now enforces pagination on /users/{id}/watched/{type} and /sync/watched/{type}
+	# (and returns only the first 100 items if no page/limit is sent). This loops every
+	# page until an empty result comes back so callers still get the full watched history.
+	page_no = 1
+	all_results = []
+	extra_params = dict(params.get('params', {}))
+	extra_params['limit'] = limit
+	while True:
+		result, page_count = call_trakt(params['path'] % params.get('path_insert', ''), params=dict(extra_params), data=params.get('data'),
+										is_delete=params.get('is_delete', False), with_auth=params.get('with_auth', False), method=params.get('method'),
+										pagination=True, page_no=page_no)
+		if not result: break
+		all_results.extend(result)
+		try: page_count = int(page_count)
+		except: page_count = page_no
+		if page_no >= page_count: break
+		page_no += 1
+	return all_results
 
 def call_trakt(path, params={}, data=None, is_delete=False, with_auth=True, method=None, pagination=False, page_no=1):
 	def send_query():
@@ -76,6 +91,13 @@ def call_trakt(path, params={}, data=None, is_delete=False, with_auth=True, meth
 		result = {'sort_by': sort_by, 'sort_how': sort_how, 'data': result}
 	if pagination: return (result, headers.get('X-Pagination-Page-Count', page_no))
 	else: return result
+
+def get_trakt(params):
+	pagination = params.get('pagination', True)
+	result = call_trakt(params['path'] % params.get('path_insert', ''), params=dict(params.get('params', {})), data=params.get('data'),
+						is_delete=params.get('is_delete', False), with_auth=params.get('with_auth', False), method=params.get('method'),
+						pagination=pagination, page_no=params.get('page_no', 1))
+	return result[0] if pagination else result
 
 def trakt_get_device_code():
 	CLIENT_ID = settings.trakt_client()
@@ -640,8 +662,8 @@ def trakt_indicators_movies():
 	try:
 		insert_list = []
 		insert_append = insert_list.append
-		params = {'path': 'sync/watched/movies%s', 'with_auth': True, 'pagination': False}
-		result = get_trakt(params)
+		params = {'path': 'sync/watched/movies%s', 'with_auth': True}
+		result = get_trakt_all_pages(params)
 		threads = TaskPool().tasks(_process, result, min(len(result), settings.max_threads()))
 		[i.join() for i in threads]
 		trakt_cache.trakt_watched_cache.set_bulk_movie_watched(insert_list)
@@ -667,16 +689,16 @@ def trakt_indicators_tv():
 	try:
 		insert_list = []
 		insert_append = insert_list.append
-		params = {'path': 'users/me/watched/shows?extended=full%s', 'with_auth': True, 'pagination': False}
-		result = get_trakt(params)
+		params = {'path': 'users/me/watched/shows?extended=progress%s', 'with_auth': True}
+		result = get_trakt_all_pages(params)
 		threads = TaskPool().tasks(_process, result, min(len(result), settings.max_threads()))
 		[i.join() for i in threads]
 		trakt_cache.trakt_watched_cache.set_bulk_tvshow_watched(insert_list)
 	except: pass
 
 def trakt_playback_progress():
-	params = {'path': 'sync/playback%s', 'with_auth': True, 'pagination': False}
-	return get_trakt(params)
+	params = {'path': 'sync/playback%s', 'with_auth': True}
+	return get_trakt_all_pages(params)
 
 def trakt_comments(media_type, imdb_id):
 	def _process(foo):
@@ -757,12 +779,38 @@ def trakt_official_status(media_type):
 
 def trakt_get_my_calendar(recently_aired, current_date):
 	def _process(dummy):
-		data = get_trakt(params)
-		data = [{'sort_title': '%s s%s e%s' % (i['show']['title'], str(i['episode']['season']).zfill(2), str(i['episode']['number']).zfill(2)),
-				'media_ids': i['show']['ids'], 'season': i['episode']['season'], 'episode': i['episode']['number'], 'first_aired': i['first_aired']} \
-									for i in data if i['episode']['season'] > 0]
-		data = [i for n, i in enumerate(data) if i not in data[n + 1:]] # remove duplicates
-		return data
+		try:
+			data = get_trakt(params)
+			if not data or not isinstance(data, list):
+				kodi_utils.logger('Trakt Calendar', 'no data returned (data=%s)' % type(data).__name__)
+				return []
+			processed = []
+			for i in data:
+				try:
+					show = i.get('show') or {}
+					ep = i.get('episode') or {}
+					season_no = ep.get('season')
+					episode_no = ep.get('number')
+					if season_no is None or episode_no is None: continue
+					try: season_no = int(season_no)
+					except: continue
+					if season_no <= 0: continue
+					processed.append({
+						'sort_title': '%s s%s e%s' % (show.get('title', ''), str(season_no).zfill(2), str(episode_no).zfill(2)),
+						'media_ids': show.get('ids') or {},
+						'season': season_no,
+						'episode': episode_no,
+						'first_aired': i.get('first_aired', '')
+					})
+				except Exception as e:
+					kodi_utils.logger('Trakt Calendar item skipped', str(e))
+					continue
+			# remove duplicates
+			processed = [i for n, i in enumerate(processed) if i not in processed[n + 1:]]
+			return processed
+		except Exception as e:
+			kodi_utils.logger('Trakt Calendar fatal', str(e))
+			return []
 	start, finish = trakt_calendar_days(recently_aired, current_date)
 	string = 'trakt_get_my_calendar_%s_%s' % (start, finish)
 	params = {'path': 'calendars/my/shows/%s/%s', 'path_insert': (start, finish), 'params': {'limit': 999}, 'with_auth': True, 'pagination': False}
