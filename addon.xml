@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.fenlight" name="Mire Sirens" provider-name="isleysharleen" version="1.0.0">
+<addon id="plugin.video.fenlight" name="Mire Sirens" provider-name="isleysharleen" version="1.0.2">
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
         <import addon="script.module.pil" version="1.1.7"/>
@@ -21,6 +21,8 @@
             <icon>resources/media/addon_icons/fenlight_icon_01.png</icon>
             <fanart>resources/media/fenlight_fanart_01.jpg</fanart>
         </assets>
-        <news>v1.0.0 - Initial release of Mire Sirens, a clean fork of Fen Light AM. Provider keys removed; users must supply their own Trakt and TMDB credentials. Updater pointed at isleysharleen GitHub.</news>
+        <news>v1.0.2 - Fixed Trakt sync breaking due to a Trakt API pagination change: watched movies/shows history AND in-progress/Continue Watching items were being silently truncated (only the most recent ~100/25 items were coming back). Added full pagination support across all three sync calls, and updated the shows-watched query to extended=progress. (Fix based on a community patch for FLAM 2.2.04, credit ReaLx3m.)
+v1.0.1 - Fixed Trending/Popular TV menus returning empty (null external_ids from TMDB) and Trakt Calendar erroring out on null season/episode data.
+v1.0.0 - Initial release of Mire Sirens, a clean fork of Fen Light AM. Provider keys removed; users must supply their own Trakt and TMDB credentials. Updater pointed at isleysharleen GitHub.</news>
     </extension>
 </addon>
