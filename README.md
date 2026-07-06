@@ -24,7 +24,7 @@ Everything else is identical to Fen Light AM v2.2.04. All scrapers, debrid integ
 
 ### Manual (zip-only)
 
-Download `plugin.video.fenlight-1.0.0.zip` and install via Kodi -> Add-ons -> Install from zip file.
+Download `plugin.video.fenlight-1.0.2.zip` and install via Kodi -> Add-ons -> Install from zip file.
 
 ## First-run setup (required)
 
@@ -64,6 +64,17 @@ This is on the SAME settings page, just below the v3 API key.
 - Real Debrid / Premiumize / AllDebrid / TorBox / Easynews — link via their normal device-auth in addon settings
 - Google Gemini / Groq — paste your API key in settings if you want AI similar recommendations
 - OMDb / RPDb — same pattern
+
+## Changelog
+
+**v1.0.2** — Trakt sync pagination fix
+Trakt changed their API to silently enforce pagination on watched-history and playback-progress endpoints, capping results to the most recent ~100 (movies/shows watched) or ~25 (in-progress) items with no page/limit sent. This broke watched checkmarks and the In Progress menus, both of which only reflected the last day or two of activity. Fixed by adding full pagination support across all three sync calls (`sync/watched/movies`, `users/me/watched/shows`, `sync/playback`), and updated the shows-watched query from `extended=full` to `extended=progress` to match Trakt's current response structure. (Fix adapted from a community patch for FLAM 2.2.04, credit: ReaLx3m.)
+
+**v1.0.1** — TV menu & calendar fix
+Trending, Trending Recent, Popular, and Popular Today were returning empty for TV shows because TMDB sometimes returns `external_ids: null`, which crashed metadata parsing silently for every item in the list. Trakt Calendar was erroring out entirely on shows with null season/episode data. Both are now defended against with None-guards and per-item error handling, so one bad entry doesn't take down the whole list.
+
+**v1.0.0** — Initial release
+Clean fork of Fen Light AM v2.2.04. Rebranded to Mire Sirens, all shared API keys removed, updater repointed to this repo.
 
 ## License
 
